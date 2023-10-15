@@ -75,7 +75,7 @@ module apb4_pwm #(
 
   always_comb begin
     s_pwm_pscr_d = s_pwm_pscr_q;
-    if (s_apb4_wr_hdshk && s_apb_addr == `TIM_DIV) begin
+    if (s_apb4_wr_hdshk && s_apb_addr == `PWM_PSCR) begin
       s_pwm_pscr_d = apb4.pwdata[DATA_WIDTH-1:0] < 2 ? 2 : abp4.pwdata;
     end
   end
@@ -109,7 +109,7 @@ module apb4_pwm #(
     end
   end
 
-  dffr #(DATA_WIDTH) u_tim_cnt_dffr (
+  dffr #(DATA_WIDTH) u_pwm_cnt_dffr (
       s_tc_clk,
       apb4.hresetn,
       s_pwm_cnt_d,
@@ -127,7 +127,7 @@ module apb4_pwm #(
     end
   end
 
-  dffr #(DATA_WIDTH) u_tim_ctrl_dffr (
+  dffr #(DATA_WIDTH) u_pwm_ctrl_dffr (
       apb4.hclk,
       apb4.hresetn,
       s_pwm_ctrl_d,
@@ -135,7 +135,7 @@ module apb4_pwm #(
   );
 
   assign s_pwm_cmp_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CMP) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwm_cmp_q;
-  dffr #(DATA_WIDTH) u_tim_cmp_dffr (
+  dffr #(DATA_WIDTH) u_pwm_cmp_dffr (
       apb4.hclk,
       apb4.hresetn,
       s_pwm_cmp_d,
@@ -143,7 +143,7 @@ module apb4_pwm #(
   );
 
   assign s_pwmcrr0_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR0) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr0_q;
-  dffr #(DATA_WIDTH) u_tim_crr0_dffr (
+  dffr #(DATA_WIDTH) u_pwm_crr0_dffr (
       clk_i,
       rst_n_i,
       s_pwmcrr0_d,
@@ -151,7 +151,7 @@ module apb4_pwm #(
   );
 
   assign s_pwmcrr1_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR1) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr1_q;
-  dffr #(DATA_WIDTH) u_tim_crr1_dffr (
+  dffr #(DATA_WIDTH) u_pwm_crr1_dffr (
       clk_i,
       rst_n_i,
       s_pwmcrr1_d,
@@ -159,7 +159,7 @@ module apb4_pwm #(
   );
 
   assign s_pwmcrr2_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR2) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr2_q;
-  dffr #(DATA_WIDTH) u_tim_crr2_dffr (
+  dffr #(DATA_WIDTH) u_pwm_crr2_dffr (
       clk_i,
       rst_n_i,
       s_pwmcrr2_d,
@@ -167,7 +167,7 @@ module apb4_pwm #(
   );
 
   assign s_pwmcrr3_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR3) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr3_q;
-  dffr #(DATA_WIDTH) u_tim_crr3_dffr (
+  dffr #(DATA_WIDTH) u_pwm_crr3_dffr (
       clk_i,
       rst_n_i,
       s_pwmcrr3_d,
