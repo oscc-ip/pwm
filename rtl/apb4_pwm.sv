@@ -66,9 +66,9 @@ module apb4_pwm #(
   logic s_ov_irq;
 
 
-  assign s_apb_addr      = apb.paddr[5:2];
-  assign s_apb4_wr_hdshk = apb.psel && apb.penable && apb.pwrite;
-  assign s_apb4_rd_hdshk = apb.psel && apb.penable && (~apb.pwrite);
+  assign s_apb_addr      = apb4.paddr[5:2];
+  assign s_apb4_wr_hdshk = apb4.psel && apb4.penable && apb4.pwrite;
+  assign s_apb4_rd_hdshk = apb4.psel && apb4.penable && (~apb4.pwrite);
   assign s_normal_mode   = s_pwm_ctrl_q[2] & s_done;
   assign s_ov_irq        = s_pwm_ctrl_q[1] & s_pwm_ctrl_q[0];
   assign irq_o           = s_ov_irq;
@@ -181,16 +181,16 @@ module apb4_pwm #(
   assign pwm_o[3] = s_pwm_cnt_q > s_pwmcrr3_q;
 
   always_comb begin
-    apb.prdata = '0;
+    apb4.prdata = '0;
     if (s_apb4_rd_hdshk) begin
       unique case (s_apb_addr)
-        `PWM_CTRL: apb.prdata[DATA_WIDTH-1:0] = s_pwm_ctrl_q;
+        `PWM_CTRL: apb4.prdata[DATA_WIDTH-1:0] = s_pwm_ctrl_q;
         `PWM_PSCR: apb4.prdata[DATA_WIDTH-1:0] = s_pwm_pscr_q;
-        `PWM_CMP:  apb.prdata[DATA_WIDTH-1:0] = s_pwm_cmp_q;
+        `PWM_CMP:  apb4.prdata[DATA_WIDTH-1:0] = s_pwm_cmp_q;
       endcase
     end
   end
 
-  assign apb.pready  = 1'b1;
-  assign apb.pslverr = 1'b0;
+  assign apb4.pready  = 1'b1;
+  assign apb4.pslverr = 1'b0;
 endmodule
