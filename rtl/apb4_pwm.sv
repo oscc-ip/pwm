@@ -1,5 +1,5 @@
 // Copyright (c) 2023 Beijing Institute of Open Source Chip
-// timer is licensed under Mulan PSL v2.
+// pwm is licensed under Mulan PSL v2.
 // You can use this software according to the terms and conditions of the Mulan PSL v2.
 // You may obtain a copy of Mulan PSL v2 at:
 //             http://license.coscl.org.cn/MulanPSL2
@@ -8,92 +8,69 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-// verilog_format: off
-`define PWM_CTRL 4'b0000 //BASEADDR+0x00
-`define PWM_PSCR 4'b0001 //BASEADDR+0x04
-`define PWM_CNT  4'b0010 //BASEADDR+0x08
-`define PWM_CMP  4'b0011 //BASEADDR+0x0C
-`define PWM_CR0  4'b0100 //BASEADDR+0x10
-`define PWM_CR1  4'b0101 //BASEADDR+0x14
-`define PWM_CR2  4'b0110 //BASEADDR+0x18
-`define PWM_CR3  4'b0111 //BASEADDR+0x1C
-// verilog_format: on
+`include "register.sv"
+`include "clk_int_div.sv"
+`include "cdc_sync.sv"
+`include "pwm_define.sv"
 
-/* register mapping
- * PWM_CTRL:
- * BITS:   | 16:3 | 2  | 1    | 0     |
- * FIELDS: | RES  | EN | OVIE | OVIF  |
- * PERMS:  | NONE | RW | RW   | RC_W0 |
- * ------------------------------------
- * PWM_PSCR:
- * BITS:   | 16:0 |
- * FIELDS: | PSCR |
- * PERMS:  | W    |
- * ------------------------------------
- * PWM_CNT:
- * BITS:   | 16:0 |
- * FIELDS: | CNT  |
- * PERMS:  | none |
- * ------------------------------------
- * PWM_CMP:
- * BITS:   | 16:0 |
- * FIELDS: | CMP  |
- * PERMS:  | RW   |
-*/
-
-// 16bit precision
-module apb4_pwm #(
-    parameter int DATA_WIDTH = 16
-) (
-    // verilog_format: off
+module apb4_pwm (
     apb4_if.slave apb4,
-    // verilog_format: on
-    output logic [3:0] pwm_o,
-    output logic irq_o
+    pwm_if.dut    pwm
 );
 
-  logic [3:0] s_apb_addr;
-  logic [DATA_WIDTH-1:0] s_pwm_ctrl_d, s_pwm_ctrl_q;
-  logic [DATA_WIDTH-1:0] s_pwm_pscr_d, s_pwm_pscr_q;
-  logic [DATA_WIDTH-1:0] s_pwm_cnt_d, s_pwm_cnt_q;
-  logic [DATA_WIDTH-1:0] s_pwm_cmp_d, s_pwm_cmp_q;
-  logic [DATA_WIDTH-1:0] s_pwmcrr0_d, s_pwmcrr0_q;
-  logic [DATA_WIDTH-1:0] s_pwmcrr1_d, s_pwmcrr1_q;
-  logic [DATA_WIDTH-1:0] s_pwmcrr2_d, s_pwmcrr2_q;
-  logic [DATA_WIDTH-1:0] s_pwmcrr3_d, s_pwmcrr3_q;
+  logic [3:0] s_apb4_addr;
+  logic [`PWM_CTRL_WIDTH-1:0] s_pwm_ctrl_d, s_pwm_ctrl_q;
+  logic [`PWM_PSCR_WIDTH-1:0] s_pwm_pscr_d, s_pwm_pscr_q;
+  logic [`PWM_CNT_WIDTH-1:0] s_pwm_cnt_d, s_pwm_cnt_q;
+  logic [`PWM_CMP_WIDTH-1:0] s_pwm_cmp_d, s_pwm_cmp_q;
+  logic [`PWM_CRX_WIDTH-1:0] s_pwm_crr0_d, s_pwm_crr0_q;
+  logic [`PWM_CRX_WIDTH-1:0] s_pwm_crr1_d, s_pwm_crr1_q;
+  logic [`PWM_CRX_WIDTH-1:0] s_pwm_crr2_d, s_pwm_crr2_q;
+  logic [`PWM_CRX_WIDTH-1:0] s_pwm_crr3_d, s_pwm_crr3_q;
+  logic [`PWM_STAT_WIDTH-1:0] s_pwm_stat_d, s_pwm_stat_q;
   logic s_valid, s_ready, s_done, s_tc_clk;
   logic s_apb4_wr_hdshk, s_apb4_rd_hdshk, s_normal_mode;
-  logic s_ov_irq;
+  logic s_irq_d, s_irq_q, s_ov_irq;
 
-
-  assign s_apb_addr      = apb4.paddr[5:2];
+  assign s_apb4_addr = apb4.paddr[5:2];
   assign s_apb4_wr_hdshk = apb4.psel && apb4.penable && apb4.pwrite;
   assign s_apb4_rd_hdshk = apb4.psel && apb4.penable && (~apb4.pwrite);
-  assign s_normal_mode   = s_pwm_ctrl_q[2] & s_done;
-  assign s_ov_irq        = s_pwm_ctrl_q[1] & s_pwm_ctrl_q[0];
-  assign irq_o           = s_ov_irq;
+  assign apb4.pready = 1'b1;
+  assign apb4.pslverr = 1'b0;
+
+  assign s_normal_mode = s_pwm_ctrl_q[1] & s_done;
+  assign s_ov_irq = s_pwm_ctrl_q[0] & s_pwm_stat_q[0];
+  assign pwm.irq_o = s_irq_q;
+
+  assign s_pwm_ctrl_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CTRL) ? apb4.pwdata[`PWM_CTRL_WIDTH-1:0]: s_pwm_ctrl_q;
+  dffr #(`PWM_CTRL_WIDTH) u_pwm_ctrl_dffr (
+      apb4.pclk,
+      apb4.presetn,
+      s_pwm_ctrl_d,
+      s_pwm_ctrl_q
+  );
 
   always_comb begin
     s_pwm_pscr_d = s_pwm_pscr_q;
-    if (s_apb4_wr_hdshk && s_apb_addr == `PWM_PSCR) begin
-      s_pwm_pscr_d = apb4.pwdata[DATA_WIDTH-1:0] < 2 ? 2 : abp4.pwdata;
+    if (s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR) begin
+      s_pwm_pscr_d = apb4.pwdata[`PWM_PSCR_WIDTH-1:0] < `PWM_PSCR_MIN_VAL ? `PWM_PSCR_MIN_VAL : apb4.pwdata[`PWM_PSCR_WIDTH-1:0];
     end
   end
 
-  dffr #(DATA_WIDTH) u_tim_pscr_dffr (
-      .clk_i  (apb4.hclk),
-      .rst_n_i(apb4.hresetn),
+  dffrc #(`PWM_PSCR_WIDTH, `PWM_PSCR_MIN_VAL) u_pwm_pscr_dffrc (
+      .clk_i  (apb4.pclk),
+      .rst_n_i(apb4.presetn),
       .dat_i  (s_pwm_pscr_d),
       .dat_o  (s_pwm_pscr_q)
   );
 
-  assign s_valid = s_apb4_wr_hdshk && s_apb_addr == `PWM_PSCR && s_done;
-  clk_int_even_div_simple u_clk_int_even_div_simple (
-      .clk_i      (apb4.hclk),
-      .rst_n_i    (apb4.hresetn),
+  assign s_valid = s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR && s_done;
+  clk_int_even_div_simple #(`PWM_PSCR_WIDTH) u_clk_int_even_div_simple (
+      .clk_i      (apb4.pclk),
+      .rst_n_i    (apb4.presetn),
       .div_i      (s_pwm_pscr_q),
       .div_valid_i(s_valid),
-      .div_ready_o(s_ready),
+      .div_ready_o(),
       .div_done_o (s_done),
       .clk_o      (s_tc_clk)
   );
@@ -109,88 +86,98 @@ module apb4_pwm #(
     end
   end
 
-  dffr #(DATA_WIDTH) u_pwm_cnt_dffr (
+  dffr #(`PWM_CNT_WIDTH) u_pwm_cnt_dffr (
       s_tc_clk,
-      apb4.hresetn,
+      apb4.presetn,
       s_pwm_cnt_d,
       s_pwm_cnt_q
   );
 
-  always_comb begin
-    s_pwm_ctrl_d = s_pwm_ctrl_q;
-    if (s_apb4_wr_hdshk && s_apb_addr == `PWM_CTRL) begin
-      s_pwm_ctrl_d = apb4.pwdata[DATA_WIDTH-1:0];
-    end else if (s_normal_mode) begin
-      if (s_pwm_cnt_q == s_pwm_cmp_q) begin
-        s_pwm_ctrl_d[0] = 1'b1;
-      end
-    end
-  end
-
-  dffr #(DATA_WIDTH) u_pwm_ctrl_dffr (
-      apb4.hclk,
-      apb4.hresetn,
-      s_pwm_ctrl_d,
-      s_pwm_ctrl_q
-  );
-
-  assign s_pwm_cmp_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CMP) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwm_cmp_q;
-  dffr #(DATA_WIDTH) u_pwm_cmp_dffr (
-      apb4.hclk,
-      apb4.hresetn,
+  assign s_pwm_cmp_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CMP) ? apb4.pwdata[`PWM_CMP_WIDTH-1:0] : s_pwm_cmp_q;
+  dffr #(`PWM_CMP_WIDTH) u_pwm_cmp_dffr (
+      apb4.pclk,
+      apb4.presetn,
       s_pwm_cmp_d,
       s_pwm_cmp_q
   );
 
-  assign s_pwmcrr0_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR0) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr0_q;
-  dffr #(DATA_WIDTH) u_pwm_crr0_dffr (
-      clk_i,
-      rst_n_i,
-      s_pwmcrr0_d,
-      s_pwmcrr0_q
+  assign s_pwm_crr0_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR0) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_crr0_q;
+  dffr #(`PWM_CRX_WIDTH) u_pwm_crr0_dffr (
+      s_tc_clk,
+      apb4.presetn,
+      s_pwm_crr0_d,
+      s_pwm_crr0_q
   );
 
-  assign s_pwmcrr1_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR1) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr1_q;
-  dffr #(DATA_WIDTH) u_pwm_crr1_dffr (
-      clk_i,
-      rst_n_i,
-      s_pwmcrr1_d,
-      s_pwmcrr1_q
+  assign s_pwm_crr1_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR1) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_crr1_q;
+  dffr #(`PWM_CRX_WIDTH) u_pwm_crr1_dffr (
+      s_tc_clk,
+      apb4.presetn,
+      s_pwm_crr1_d,
+      s_pwm_crr1_q
   );
 
-  assign s_pwmcrr2_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR2) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr2_q;
-  dffr #(DATA_WIDTH) u_pwm_crr2_dffr (
-      clk_i,
-      rst_n_i,
-      s_pwmcrr2_d,
-      s_pwmcrr2_q
+  assign s_pwm_crr2_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR2) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_crr2_q;
+  dffr #(`PWM_CRX_WIDTH) u_pwm_crr2_dffr (
+      s_tc_clk,
+      apb4.presetn,
+      s_pwm_crr2_d,
+      s_pwm_crr2_q
   );
 
-  assign s_pwmcrr3_d = (s_apb4_wr_hdshk && s_apb_addr == `PWM_CR3) ? apb4.pwdata[DATA_WIDTH-1:0] : s_pwmcrr3_q;
-  dffr #(DATA_WIDTH) u_pwm_crr3_dffr (
-      clk_i,
-      rst_n_i,
-      s_pwmcrr3_d,
-      s_pwmcrr3_q
+  assign s_pwm_crr3_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR3) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_crr3_q;
+  dffr #(`PWM_CRX_WIDTH) u_pwm_crr3_dffr (
+      s_tc_clk,
+      apb4.presetn,
+      s_pwm_crr3_d,
+      s_pwm_crr3_q
   );
 
   // NOTE: need to assure the s_pwmcrrx_q less than s_pwmcmp_q
-  assign pwm_o[0] = s_pwm_cnt_q > s_pwmcrr0_q;
-  assign pwm_o[1] = s_pwm_cnt_q > s_pwmcrr1_q;
-  assign pwm_o[2] = s_pwm_cnt_q > s_pwmcrr2_q;
-  assign pwm_o[3] = s_pwm_cnt_q > s_pwmcrr3_q;
+  assign pwm.pwm_o[0] = s_pwm_cnt_q > s_pwm_crr0_q;
+  assign pwm.pwm_o[1] = s_pwm_cnt_q > s_pwm_crr1_q;
+  assign pwm.pwm_o[2] = s_pwm_cnt_q > s_pwm_crr2_q;
+  assign pwm.pwm_o[3] = s_pwm_cnt_q > s_pwm_crr3_q;
+
+  cdc_sync #(2, 1) u_irq_cdc_sync (
+      apb4.pclk,
+      apb4.presetn,
+      s_pwm_cnt_q == s_pwm_cmp_q,
+      s_pwm_stat_d[0]
+  );
+
+  dffr #(`PWM_STAT_WIDTH) u_pwm_stat_dffr (
+      apb4.pclk,
+      apb4.presetn,
+      s_pwm_stat_d,
+      s_pwm_stat_q
+  );
+
+  always_comb begin
+    s_irq_d = s_irq_q;
+    if (~s_irq_q && s_ov_irq) begin
+      s_irq_d = 1'b1;
+    end else if (s_irq_q && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
+      s_irq_d = 1'b0;
+    end
+  end
+  dffr #(1) u_irq_dffr (
+      apb4.pclk,
+      apb4.presetn,
+      s_irq_d,
+      s_irq_q
+  );
 
   always_comb begin
     apb4.prdata = '0;
     if (s_apb4_rd_hdshk) begin
-      unique case (s_apb_addr)
-        `PWM_CTRL: apb4.prdata[DATA_WIDTH-1:0] = s_pwm_ctrl_q;
-        `PWM_PSCR: apb4.prdata[DATA_WIDTH-1:0] = s_pwm_pscr_q;
-        `PWM_CMP:  apb4.prdata[DATA_WIDTH-1:0] = s_pwm_cmp_q;
+      unique case (s_apb4_addr)
+        `PWM_CTRL: apb4.prdata[`PWM_CTRL_WIDTH-1:0] = s_pwm_ctrl_q;
+        `PWM_PSCR: apb4.prdata[`PWM_PSCR_WIDTH-1:0] = s_pwm_pscr_q;
+        `PWM_CMP:  apb4.prdata[`PWM_CMP_WIDTH-1:0] = s_pwm_cmp_q;
+        `PWM_STAT: apb4.prdata[`PWM_STAT_WIDTH-1:0] = s_pwm_stat_q;
+        default:   apb4.prdata = '0;
       endcase
     end
   end
-
-  assign apb4.pready  = 1'b1;
-  assign apb4.pslverr = 1'b0;
 endmodule
