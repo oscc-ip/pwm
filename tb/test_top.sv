@@ -36,13 +36,12 @@ program automatic test_top (
     Helper::print("tb init done");
     pwm_hdl = new("pwm_test", apb4, pwm);
     pwm_hdl.init();
-
-    // pwm_hdl.test_reset_reg();
-    // pwm_hdl.test_wr_rd_reg();
-    // pwm_hdl.test_clk_div();
-    // pwm_hdl.test_inc_cnt();
-    // pwm_hdl.test_dec_cnt();
-    // pwm_hdl.test_irq();
+    pwm_hdl.test_reset_reg();
+    pwm_hdl.test_wr_rd_reg();
+    pwm_hdl.test_clk_div();
+    pwm_hdl.test_inc_cnt();
+    pwm_hdl.test_pwm();
+    pwm_hdl.test_irq();
 
     Helper::end_banner();
     #20000 $finish;
