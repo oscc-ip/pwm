@@ -103,7 +103,7 @@ module apb4_pwm (
 
   assign s_pwm_cr0_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR0) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr0_q;
   dffr #(`PWM_CRX_WIDTH) u_pwm_cr0_dffr (
-      s_tc_clk,
+      apb4.pclk,
       apb4.presetn,
       s_pwm_cr0_d,
       s_pwm_cr0_q
@@ -111,7 +111,7 @@ module apb4_pwm (
 
   assign s_pwm_cr1_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR1) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr1_q;
   dffr #(`PWM_CRX_WIDTH) u_pwm_cr1_dffr (
-      s_tc_clk,
+      apb4.pclk,
       apb4.presetn,
       s_pwm_cr1_d,
       s_pwm_cr1_q
@@ -119,7 +119,7 @@ module apb4_pwm (
 
   assign s_pwm_cr2_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR2) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr2_q;
   dffr #(`PWM_CRX_WIDTH) u_pwm_cr2_dffr (
-      s_tc_clk,
+      apb4.pclk,
       apb4.presetn,
       s_pwm_cr2_d,
       s_pwm_cr2_q
@@ -127,7 +127,7 @@ module apb4_pwm (
 
   assign s_pwm_cr3_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR3) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr3_q;
   dffr #(`PWM_CRX_WIDTH) u_pwm_cr3_dffr (
-      s_tc_clk,
+      apb4.pclk,
       apb4.presetn,
       s_pwm_cr3_d,
       s_pwm_cr3_q
