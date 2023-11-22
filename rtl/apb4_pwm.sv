@@ -29,7 +29,7 @@ module apb4_pwm (
   logic [`PWM_CRX_WIDTH-1:0] s_pwm_cr3_d, s_pwm_cr3_q;
   logic [`PWM_STAT_WIDTH-1:0] s_pwm_stat_d, s_pwm_stat_q;
   logic s_valid, s_done, s_tc_clk;
-  logic s_apb4_wr_hdshk, s_apb4_rd_hdshk, s_normal_mode;
+  logic s_apb4_wr_hdshk, s_apb4_rd_hdshk, s_normal_mode, s_pwm_irq_trg;
   logic s_irq_d, s_irq_q, s_ov_irq;
 
   assign s_apb4_addr = apb4.paddr[5:2];
@@ -143,9 +143,17 @@ module apb4_pwm (
       apb4.pclk,
       apb4.presetn,
       s_pwm_cnt_q >= s_pwm_cmp_q,
-      s_pwm_stat_d[0]
+      s_pwm_irq_trg
   );
 
+  always_comb begin
+    s_pwm_stat_d = s_pwm_stat_q;
+    if (s_irq_q && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
+      s_pwm_stat_d = '0;
+    end else if (s_pwm_irq_trg) begin
+      s_pwm_stat_d = '1;
+    end
+  end
   dffr #(`PWM_STAT_WIDTH) u_pwm_stat_dffr (
       apb4.pclk,
       apb4.presetn,

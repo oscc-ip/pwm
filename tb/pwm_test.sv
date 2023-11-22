@@ -72,19 +72,19 @@ task automatic PWMTest::test_clk_div(input bit [31:0] run_times = 10);
   this.write(`PWM_CR2_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR3_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
 
-  repeat (200) @(posedge apb4.pclk);
+  repeat (200) @(posedge this.apb4.pclk);
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
-  repeat (200) @(posedge apb4.pclk);
+  repeat (200) @(posedge this.apb4.pclk);
   this.write(`PWM_PSCR_ADDR, 32'd10 & {`PWM_PSCR_WIDTH{1'b1}});
-  repeat (200) @(posedge apb4.pclk);
+  repeat (200) @(posedge this.apb4.pclk);
   this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
-  repeat (200) @(posedge apb4.pclk);
+  repeat (200) @(posedge this.apb4.pclk);
   for (int i = 0; i < run_times; i++) begin
     this.wr_val = ($random % 20) & {`PWM_PSCR_WIDTH{1'b1}};
     if (this.wr_val < 2) this.wr_val = 2;
     if (this.wr_val % 2) this.wr_val -= 1;
     this.wr_rd_check(`PWM_PSCR_ADDR, "PSCR REG", this.wr_val, Helper::EQUL);
-    repeat (200) @(posedge apb4.pclk);
+    repeat (200) @(posedge this.apb4.pclk);
   end
 endtask
 
@@ -99,7 +99,7 @@ task automatic PWMTest::test_inc_cnt(input bit [31:0] run_times = 10);
   this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
   this.write(`PWM_CMP_ADDR, 32'hF & {`PWM_CMP_WIDTH{1'b1}});
   this.write(`PWM_CTRL_ADDR, 32'b10 & {`PWM_CTRL_WIDTH{1'b1}});
-  repeat (200) @(posedge apb4.pclk);
+  repeat (200) @(posedge this.apb4.pclk);
 endtask
 
 task automatic PWMTest::test_pwm(input bit [31:0] run_times = 1000);
@@ -115,7 +115,7 @@ task automatic PWMTest::test_pwm(input bit [31:0] run_times = 1000);
   this.write(`PWM_CMP_ADDR, 32'd10 & {`PWM_CMP_WIDTH{1'b1}});
   this.write(`PWM_CTRL_ADDR, 32'b10 & {`PWM_CTRL_WIDTH{1'b1}});
   this.write(`PWM_CR0_ADDR, 32'b1 & {`PWM_CRX_WIDTH{1'b1}});
-  repeat (400) @(posedge apb4.pclk);
+  repeat (400) @(posedge this.apb4.pclk);
 endtask
 
 task automatic PWMTest::test_irq(input bit [31:0] run_times = 10);
@@ -132,8 +132,9 @@ task automatic PWMTest::test_irq(input bit [31:0] run_times = 10);
   for (int i = 0; i < run_times; i++) begin
     this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
     this.read(`PWM_STAT_ADDR);
+    $display("%t rd_data: %h", $time, super.rd_data);
     this.write(`PWM_CTRL_ADDR, 32'b11 & {`PWM_CTRL_WIDTH{1'b1}});
-    repeat (200) @(posedge apb4.pclk);
+    repeat (200) @(posedge this.apb4.pclk);
   end
 
 endtask
