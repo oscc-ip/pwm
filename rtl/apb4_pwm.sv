@@ -29,8 +29,8 @@ module apb4_pwm (
   logic [`PWM_CRX_WIDTH-1:0] s_pwm_cr3_d, s_pwm_cr3_q;
   logic [`PWM_STAT_WIDTH-1:0] s_pwm_stat_d, s_pwm_stat_q;
   logic s_valid, s_done, s_tc_clk;
-  logic s_apb4_wr_hdshk, s_apb4_rd_hdshk, s_normal_mode, s_pwm_irq_trg;
-  logic s_irq_d, s_irq_q, s_ov_irq;
+  logic s_apb4_wr_hdshk, s_apb4_rd_hdshk, s_normal_mode;
+  logic s_ov_en, s_ov_irq_trg;
 
   assign s_apb4_addr = apb4.paddr[5:2];
   assign s_apb4_wr_hdshk = apb4.psel && apb4.penable && apb4.pwrite;
@@ -39,8 +39,8 @@ module apb4_pwm (
   assign apb4.pslverr = 1'b0;
 
   assign s_normal_mode = s_pwm_ctrl_q[1] & s_done;
-  assign s_ov_irq = s_pwm_ctrl_q[0] & s_pwm_stat_q[0];
-  assign pwm.irq_o = s_irq_q;
+  assign s_ov_en = s_pwm_ctrl_q[0];
+  assign pwm.irq_o = s_pwm_stat_q[0];
 
   assign s_pwm_ctrl_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CTRL) ? apb4.pwdata[`PWM_CTRL_WIDTH-1:0]: s_pwm_ctrl_q;
   dffr #(`PWM_CTRL_WIDTH) u_pwm_ctrl_dffr (
@@ -143,14 +143,14 @@ module apb4_pwm (
       apb4.pclk,
       apb4.presetn,
       s_pwm_cnt_q >= s_pwm_cmp_q,
-      s_pwm_irq_trg
+      s_ov_irq_trg
   );
 
   always_comb begin
     s_pwm_stat_d = s_pwm_stat_q;
-    if (s_irq_q && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
+    if (s_pwm_stat_q[0] && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
       s_pwm_stat_d = '0;
-    end else if (s_pwm_irq_trg) begin
+    end else if (~s_pwm_stat_q[0] && s_ov_en && s_ov_irq_trg) begin
       s_pwm_stat_d = '1;
     end
   end
@@ -159,21 +159,6 @@ module apb4_pwm (
       apb4.presetn,
       s_pwm_stat_d,
       s_pwm_stat_q
-  );
-
-  always_comb begin
-    s_irq_d = s_irq_q;
-    if (~s_irq_q && s_ov_irq) begin
-      s_irq_d = 1'b1;
-    end else if (s_irq_q && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
-      s_irq_d = 1'b0;
-    end
-  end
-  dffr #(1) u_irq_dffr (
-      apb4.pclk,
-      apb4.presetn,
-      s_irq_d,
-      s_irq_q
   );
 
   always_comb begin
