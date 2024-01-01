@@ -19,49 +19,64 @@ module apb4_pwm (
 );
 
   logic [3:0] s_apb4_addr;
+  logic s_apb4_wr_hdshk, s_apb4_rd_hdshk;
   logic [`PWM_CTRL_WIDTH-1:0] s_pwm_ctrl_d, s_pwm_ctrl_q;
+  logic s_pwm_ctrl_en;
   logic [`PWM_PSCR_WIDTH-1:0] s_pwm_pscr_d, s_pwm_pscr_q;
+  logic s_pwm_pscr_en;
   logic [`PWM_CNT_WIDTH-1:0] s_pwm_cnt_d, s_pwm_cnt_q;
+  logic s_pwm_cnt_en;
   logic [`PWM_CMP_WIDTH-1:0] s_pwm_cmp_d, s_pwm_cmp_q;
+  logic s_pwm_cmp_en;
   logic [`PWM_CRX_WIDTH-1:0] s_pwm_cr0_d, s_pwm_cr0_q;
+  logic s_pwm_cr0_en;
   logic [`PWM_CRX_WIDTH-1:0] s_pwm_cr1_d, s_pwm_cr1_q;
+  logic s_pwm_cr1_en;
   logic [`PWM_CRX_WIDTH-1:0] s_pwm_cr2_d, s_pwm_cr2_q;
+  logic s_pwm_cr2_en;
   logic [`PWM_CRX_WIDTH-1:0] s_pwm_cr3_d, s_pwm_cr3_q;
+  logic s_pwm_cr3_en;
   logic [`PWM_STAT_WIDTH-1:0] s_pwm_stat_d, s_pwm_stat_q;
-  logic s_valid, s_done, s_tc_clk;
-  logic s_apb4_wr_hdshk, s_apb4_rd_hdshk, s_normal_mode;
-  logic s_ov_en, s_ov_irq_trg;
+  logic s_pwm_stat_en;
+  logic s_bit_ovie, s_bit_en, s_bit_clr, s_bit_ovif;
+  logic s_valid, s_done, s_tc_clk, s_normal_mode, s_ov_irq_trg;
 
-  assign s_apb4_addr = apb4.paddr[5:2];
+  assign s_apb4_addr     = apb4.paddr[5:2];
   assign s_apb4_wr_hdshk = apb4.psel && apb4.penable && apb4.pwrite;
   assign s_apb4_rd_hdshk = apb4.psel && apb4.penable && (~apb4.pwrite);
-  assign apb4.pready = 1'b1;
-  assign apb4.pslverr = 1'b0;
+  assign apb4.pready     = 1'b1;
+  assign apb4.pslverr    = 1'b0;
 
-  assign s_normal_mode = s_pwm_ctrl_q[1] & s_done;
-  assign s_ov_en = s_pwm_ctrl_q[0];
-  assign pwm.irq_o = s_pwm_stat_q[0];
+  assign s_bit_ovie      = s_pwm_ctrl_q[0];
+  assign s_bit_en        = s_pwm_ctrl_q[1];
+  assign s_bit_clr       = s_pwm_ctrl_q[2];
+  assign s_bit_ovif      = s_pwm_stat_q[0];
+  assign s_normal_mode   = s_bit_en & s_done;
+  assign pwm.irq_o       = s_bit_ovif;
 
-  assign s_pwm_ctrl_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CTRL) ? apb4.pwdata[`PWM_CTRL_WIDTH-1:0]: s_pwm_ctrl_q;
-  dffr #(`PWM_CTRL_WIDTH) u_pwm_ctrl_dffr (
+  assign s_pwm_ctrl_en   = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CTRL;
+  assign s_pwm_ctrl_d    = s_pwm_ctrl_en ? apb4.pwdata[`PWM_CTRL_WIDTH-1:0] : s_pwm_ctrl_q;
+  dffer #(`PWM_CTRL_WIDTH) u_pwm_ctrl_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_ctrl_en,
       s_pwm_ctrl_d,
       s_pwm_ctrl_q
   );
 
+  assign s_pwm_pscr_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR;
   always_comb begin
     s_pwm_pscr_d = s_pwm_pscr_q;
-    if (s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR) begin
+    if (s_pwm_pscr_en) begin
       s_pwm_pscr_d = apb4.pwdata[`PWM_PSCR_WIDTH-1:0] < `PWM_PSCR_MIN_VAL ? `PWM_PSCR_MIN_VAL : apb4.pwdata[`PWM_PSCR_WIDTH-1:0];
     end
   end
-
-  dffrc #(`PWM_PSCR_WIDTH, `PWM_PSCR_MIN_VAL) u_pwm_pscr_dffrc (
-      .clk_i  (apb4.pclk),
-      .rst_n_i(apb4.presetn),
-      .dat_i  (s_pwm_pscr_d),
-      .dat_o  (s_pwm_pscr_q)
+  dfferc #(`PWM_PSCR_WIDTH, `PWM_PSCR_MIN_VAL) u_pwm_pscr_dfferc (
+      apb4.pclk,
+      apb4.presetn,
+      s_pwm_pscr_en,
+      s_pwm_pscr_d,
+      s_pwm_pscr_q
   );
 
   assign s_valid = s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR && s_done;
@@ -75,10 +90,13 @@ module apb4_pwm (
       .clk_o      (s_tc_clk)
   );
 
+  assign s_pwm_cnt_en = s_bit_clr || s_normal_mode;
   always_comb begin
     s_pwm_cnt_d = s_pwm_cnt_q;
-    if (s_normal_mode) begin
-      if (s_pwm_cnt_q >= s_pwm_cmp_q) begin
+    if (s_bit_clr) begin
+      s_pwm_cnt_d = '0;
+    end else if (s_normal_mode) begin
+      if (s_pwm_cnt_q >= s_pwm_cmp_q - 1) begin
         s_pwm_cnt_d = '0;
       end else begin
         s_pwm_cnt_d = s_pwm_cnt_q + 1'b1;
@@ -86,77 +104,90 @@ module apb4_pwm (
     end
   end
 
-  dffr #(`PWM_CNT_WIDTH) u_pwm_cnt_dffr (
+  dffer #(`PWM_CNT_WIDTH) u_pwm_cnt_dffer (
       s_tc_clk,
       apb4.presetn,
+      s_pwm_cnt_en,
       s_pwm_cnt_d,
       s_pwm_cnt_q
   );
 
-  assign s_pwm_cmp_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CMP) ? apb4.pwdata[`PWM_CMP_WIDTH-1:0] : s_pwm_cmp_q;
-  dffr #(`PWM_CMP_WIDTH) u_pwm_cmp_dffr (
+  assign s_pwm_cmp_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CMP;
+  assign s_pwm_cmp_d  = s_pwm_cmp_en ? apb4.pwdata[`PWM_CMP_WIDTH-1:0] : s_pwm_cmp_q;
+  dffer #(`PWM_CMP_WIDTH) u_pwm_cmp_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_cmp_en,
       s_pwm_cmp_d,
       s_pwm_cmp_q
   );
 
-  assign s_pwm_cr0_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR0) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr0_q;
-  dffr #(`PWM_CRX_WIDTH) u_pwm_cr0_dffr (
+  assign s_pwm_cr0_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR0;
+  assign s_pwm_cr0_d  = s_pwm_cr0_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr0_q;
+  dffer #(`PWM_CRX_WIDTH) u_pwm_cr0_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_cr0_en,
       s_pwm_cr0_d,
       s_pwm_cr0_q
   );
 
-  assign s_pwm_cr1_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR1) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr1_q;
-  dffr #(`PWM_CRX_WIDTH) u_pwm_cr1_dffr (
+  assign s_pwm_cr1_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR1;
+  assign s_pwm_cr1_d  = s_pwm_cr1_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr1_q;
+  dffer #(`PWM_CRX_WIDTH) u_pwm_cr1_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_cr1_en,
       s_pwm_cr1_d,
       s_pwm_cr1_q
   );
 
-  assign s_pwm_cr2_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR2) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr2_q;
-  dffr #(`PWM_CRX_WIDTH) u_pwm_cr2_dffr (
+  assign s_pwm_cr2_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR2;
+  assign s_pwm_cr2_d  = s_pwm_cr2_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr2_q;
+  dffer #(`PWM_CRX_WIDTH) u_pwm_cr2_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_cr2_en,
       s_pwm_cr2_d,
       s_pwm_cr2_q
   );
 
-  assign s_pwm_cr3_d = (s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR3) ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr3_q;
-  dffr #(`PWM_CRX_WIDTH) u_pwm_cr3_dffr (
+  assign s_pwm_cr3_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR3;
+  assign s_pwm_cr3_d  = s_pwm_cr3_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr3_q;
+  dffer #(`PWM_CRX_WIDTH) u_pwm_cr3_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_cr3_en,
       s_pwm_cr3_d,
       s_pwm_cr3_q
   );
 
   // NOTE: need to assure the s_pwmcrrx_q less than s_pwmcmp_q
-  assign pwm.pwm_o[0] = s_pwm_cnt_q > s_pwm_cr0_q;
-  assign pwm.pwm_o[1] = s_pwm_cnt_q > s_pwm_cr1_q;
-  assign pwm.pwm_o[2] = s_pwm_cnt_q > s_pwm_cr2_q;
-  assign pwm.pwm_o[3] = s_pwm_cnt_q > s_pwm_cr3_q;
+  assign pwm.pwm_o[0] = s_pwm_cnt_q >= s_pwm_cr0_q;
+  assign pwm.pwm_o[1] = s_pwm_cnt_q >= s_pwm_cr1_q;
+  assign pwm.pwm_o[2] = s_pwm_cnt_q >= s_pwm_cr2_q;
+  assign pwm.pwm_o[3] = s_pwm_cnt_q >= s_pwm_cr3_q;
 
   cdc_sync #(2, 1) u_irq_cdc_sync (
       apb4.pclk,
       apb4.presetn,
-      s_pwm_cnt_q >= s_pwm_cmp_q,
+      s_pwm_cnt_q >= s_pwm_cmp_q - 1,
       s_ov_irq_trg
   );
 
+  assign s_pwm_stat_en = (s_bit_ovif && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) || (~s_bit_ovif && s_bit_ovie && s_ov_irq_trg);
   always_comb begin
     s_pwm_stat_d = s_pwm_stat_q;
-    if (s_pwm_stat_q[0] && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
+    if (s_bit_ovif && s_apb4_rd_hdshk && s_apb4_addr == `PWM_STAT) begin
       s_pwm_stat_d = '0;
-    end else if (~s_pwm_stat_q[0] && s_ov_en && s_ov_irq_trg) begin
+    end else if (~s_bit_ovif && s_bit_ovie && s_ov_irq_trg) begin
       s_pwm_stat_d = '1;
     end
   end
-  dffr #(`PWM_STAT_WIDTH) u_pwm_stat_dffr (
+  dffer #(`PWM_STAT_WIDTH) u_pwm_stat_dffer (
       apb4.pclk,
       apb4.presetn,
+      s_pwm_stat_en,
       s_pwm_stat_d,
       s_pwm_stat_q
   );

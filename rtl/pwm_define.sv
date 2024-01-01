@@ -13,35 +13,35 @@
 
 /* register mapping
  * PWM_CTRL:
- * BITS:   | 31:2 | 1  | 0    |
- * FIELDS: | RES  | EN | OVIE |
- * PERMS:  | NONE | RW | RW   |
- * ----------------------------
+ * BITS:   | 31:3 | 2   | 1  | 0    |
+ * FIELDS: | RES  | CLR | EN | OVIE |
+ * PERMS:  | NONE | RW  | RW | RW   |
+ * ----------------------------------
  * PWM_PSCR:
  * BITS:   | 31:16 | 15:0 |
  * FIELDS: | RES   | PSCR |
  * PERMS:  | NONE  | RW   |
- * ----------------------------
+ * ----------------------------------
  * PWM_CNT:
  * BITS:   | 31:16 | 15:0 |
  * FIELDS: | RES   | CNT  |
  * PERMS:  | NONE  | none |
- * ----------------------------
+ * ----------------------------------
  * PWM_CMP:
  * BITS:   | 31:16 | 15:0 |
  * FIELDS: | RES   | CMP  |
  * PERMS:  | NONE  | RW   |
- * ----------------------------
+ * ----------------------------------
  * PWM_CRX:
  * BITS:   | 31:16 | 15:0 |
  * FIELDS: | RES   | CRX  |
  * PERMS:  | NONE  | RW   |
- * ----------------------------
+ * ----------------------------------
  * PWM_STAT:
  * BITS:   | 31:1  | 0    |
  * FIELDS: | RES   | OVIF |
  * PERMS:  | NONE  | R    |
- * ----------------------------
+ * ----------------------------------
 */
 
 // verilog_format: off
@@ -65,7 +65,7 @@
 `define PWM_CR3_ADDR  {26'b0, `PWM_CR3 , 2'b00}
 `define PWM_STAT_ADDR {26'b0, `PWM_STAT, 2'b00}
 
-`define PWM_CTRL_WIDTH 2
+`define PWM_CTRL_WIDTH 3
 `define PWM_PSCR_WIDTH 16
 `define PWM_CNT_WIDTH  16
 `define PWM_CMP_WIDTH  16
