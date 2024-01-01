@@ -67,10 +67,13 @@ endtask
 
 task automatic PWMTest::test_clk_div(input bit [31:0] run_times = 10);
   $display("=== [test pwm clk div] ===");
+  this.write(`PWM_CTRL_ADDR, 32'b100 & {`PWM_CTRL_WIDTH{1'b1}});  // clear cnt
   this.write(`PWM_CR0_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR1_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR2_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR3_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
+  this.read(`PWM_STAT_ADDR);  // clear the irq
+
 
   repeat (200) @(posedge this.apb4.pclk);
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
@@ -90,10 +93,12 @@ endtask
 
 task automatic PWMTest::test_inc_cnt(input bit [31:0] run_times = 10);
   $display("=== [test pwm inc cnt] ===");
+  this.write(`PWM_CTRL_ADDR, 32'b100 & {`PWM_CTRL_WIDTH{1'b1}});  // clear cnt
   this.write(`PWM_CR0_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR1_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR2_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR3_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
+  this.read(`PWM_STAT_ADDR);  // clear the irq
 
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
   this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
@@ -103,28 +108,37 @@ task automatic PWMTest::test_inc_cnt(input bit [31:0] run_times = 10);
 endtask
 
 task automatic PWMTest::test_pwm(input bit [31:0] run_times = 1000);
-  $display("=== [test pwm inc cnt] ===");
+  $display("=== [test pwm func] ===");
   // servo motor: 50Hz, 1~30KHz, example: 1MHz
+  this.write(`PWM_CTRL_ADDR, 32'b100 & {`PWM_CTRL_WIDTH{1'b1}});  // clear cnt
   this.write(`PWM_CR0_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR1_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR2_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR3_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
+  this.read(`PWM_STAT_ADDR);  // clear the irq
 
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
   this.write(`PWM_PSCR_ADDR, 32'd10 & {`PWM_PSCR_WIDTH{1'b1}});
-  this.write(`PWM_CMP_ADDR, 32'd10 & {`PWM_CMP_WIDTH{1'b1}});
+  this.write(`PWM_CMP_ADDR, 32'd10 & {`PWM_CMP_WIDTH{1'b1}});  // freq: 100K
   this.write(`PWM_CTRL_ADDR, 32'b10 & {`PWM_CTRL_WIDTH{1'b1}});
-  this.write(`PWM_CR0_ADDR, 32'b1 & {`PWM_CRX_WIDTH{1'b1}});
-  repeat (400) @(posedge this.apb4.pclk);
+  // CR: [0, CMP-1] -> [10% ~ 100%]
+  this.write(`PWM_CR0_ADDR, 32'd0 & {`PWM_CRX_WIDTH{1'b1}});  // 100% duty
+  this.write(`PWM_CR1_ADDR, 32'd3 & {`PWM_CRX_WIDTH{1'b1}});  // 70% duty
+  this.write(`PWM_CR2_ADDR, 32'd5 & {`PWM_CRX_WIDTH{1'b1}});  // 50% duty
+  this.write(`PWM_CR3_ADDR, 32'd9 & {`PWM_CRX_WIDTH{1'b1}});  // 10% duty
+  // @(this.pwm.pwm_o[3]);
+  repeat (600) @(posedge this.apb4.pclk);
 endtask
 
 task automatic PWMTest::test_irq(input bit [31:0] run_times = 10);
   super.test_irq();
-  this.read(`PWM_STAT_ADDR);
+  this.write(`PWM_CTRL_ADDR, 32'b100 & {`PWM_CTRL_WIDTH{1'b1}});  // clear cnt
   this.write(`PWM_CR0_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR1_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR2_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.write(`PWM_CR3_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
+  this.read(`PWM_STAT_ADDR);  // clear the irq
+
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
   this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
   this.write(`PWM_CMP_ADDR, 32'hE & {`PWM_CMP_WIDTH{1'b1}});
@@ -134,6 +148,7 @@ task automatic PWMTest::test_irq(input bit [31:0] run_times = 10);
     this.read(`PWM_STAT_ADDR);
     $display("%t rd_data: %h", $time, super.rd_data);
     this.write(`PWM_CTRL_ADDR, 32'b11 & {`PWM_CTRL_WIDTH{1'b1}});
+    @(this.pwm.irq_o);
     repeat (200) @(posedge this.apb4.pclk);
   end
 
