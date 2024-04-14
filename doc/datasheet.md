@@ -64,7 +64,7 @@ reset value: `0x0000_0002`
 | bit | access  | description |
 |:---:|:-------:| :---------: |
 | `[31:16]` | none | reserved |
-| `[15:0]` | RW | CNT |
+| `[15:0]` | none | CNT |
 
 reset value: `0x0000_0000`
 
@@ -124,7 +124,7 @@ reset value: `0x0000_0000`
 | bit | access  | description |
 |:---:|:-------:| :---------: |
 | `[31:1]` | none | reserved |
-| `[0:0]` | RW | OVIF |
+| `[0:0]` | RO | OVIF |
 
 reset value: `0x0000_0000`
 
