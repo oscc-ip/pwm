@@ -55,7 +55,7 @@ module apb4_pwm (
   assign pwm.irq_o       = s_bit_ovif;
 
   assign s_pwm_ctrl_en   = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CTRL;
-  assign s_pwm_ctrl_d    = s_pwm_ctrl_en ? apb4.pwdata[`PWM_CTRL_WIDTH-1:0] : s_pwm_ctrl_q;
+  assign s_pwm_ctrl_d    = apb4.pwdata[`PWM_CTRL_WIDTH-1:0];
   dffer #(`PWM_CTRL_WIDTH) u_pwm_ctrl_dffer (
       apb4.pclk,
       apb4.presetn,
@@ -113,7 +113,7 @@ module apb4_pwm (
   );
 
   assign s_pwm_cmp_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CMP;
-  assign s_pwm_cmp_d  = s_pwm_cmp_en ? apb4.pwdata[`PWM_CMP_WIDTH-1:0] : s_pwm_cmp_q;
+  assign s_pwm_cmp_d  = apb4.pwdata[`PWM_CMP_WIDTH-1:0];
   dffer #(`PWM_CMP_WIDTH) u_pwm_cmp_dffer (
       apb4.pclk,
       apb4.presetn,
@@ -123,7 +123,7 @@ module apb4_pwm (
   );
 
   assign s_pwm_cr0_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR0;
-  assign s_pwm_cr0_d  = s_pwm_cr0_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr0_q;
+  assign s_pwm_cr0_d  = apb4.pwdata[`PWM_CRX_WIDTH-1:0];
   dffer #(`PWM_CRX_WIDTH) u_pwm_cr0_dffer (
       apb4.pclk,
       apb4.presetn,
@@ -133,7 +133,7 @@ module apb4_pwm (
   );
 
   assign s_pwm_cr1_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR1;
-  assign s_pwm_cr1_d  = s_pwm_cr1_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr1_q;
+  assign s_pwm_cr1_d  = apb4.pwdata[`PWM_CRX_WIDTH-1:0];
   dffer #(`PWM_CRX_WIDTH) u_pwm_cr1_dffer (
       apb4.pclk,
       apb4.presetn,
@@ -143,7 +143,7 @@ module apb4_pwm (
   );
 
   assign s_pwm_cr2_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR2;
-  assign s_pwm_cr2_d  = s_pwm_cr2_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr2_q;
+  assign s_pwm_cr2_d  = apb4.pwdata[`PWM_CRX_WIDTH-1:0];
   dffer #(`PWM_CRX_WIDTH) u_pwm_cr2_dffer (
       apb4.pclk,
       apb4.presetn,
@@ -153,7 +153,7 @@ module apb4_pwm (
   );
 
   assign s_pwm_cr3_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_CR3;
-  assign s_pwm_cr3_d  = s_pwm_cr3_en ? apb4.pwdata[`PWM_CRX_WIDTH-1:0] : s_pwm_cr3_q;
+  assign s_pwm_cr3_d  = apb4.pwdata[`PWM_CRX_WIDTH-1:0];
   dffer #(`PWM_CRX_WIDTH) u_pwm_cr3_dffer (
       apb4.pclk,
       apb4.presetn,
