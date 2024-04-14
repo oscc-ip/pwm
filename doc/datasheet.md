@@ -46,9 +46,17 @@ The `pwm(pulse width modulation)` IP is a fully parameterised soft IP to generat
 
 reset value: `0x0000_0000`
 
-* CLK: 
-* EN: 
-* OVIE: 
+* CLR: the clear signal for counter register
+    * `CLR = 1'b0`: enter the normal operation mode
+    * `CLR = 1'b1`: clear the value of counter register to 0
+
+* EN: the enable signal for counter register
+    * `EN = 1'b0`: counter register disabled
+    * `EN = 1'b1`: counter register enabled
+
+* OVIE: the enable signal for overflow interrupt
+    * `OVIE = 1'b0`: overflow interrupt disabled
+    * `OVIE = 1'b1`: overflow interrupt enabled
 
 #### Prescaler Reigster
 | bit | access  | description |
@@ -68,7 +76,7 @@ reset value: `0x0000_0002`
 
 reset value: `0x0000_0000`
 
-* CNT: the 16-bit programmable counter
+* CNT: the 16-bit count up register
 
 #### Compare Reigster
 | bit | access  | description |
@@ -131,23 +139,17 @@ reset value: `0x0000_0000`
 * OVIF: the overflow interrupt flag
 
 ### Program Guide
-The software operation of `pwm` is simple. These registers can be accessed by 4-byte aligned read and write. C-like pseudocode read operation:
+These registers can be accessed by 4-byte aligned read and write. C-like pseudocode:
+
+init operation:
 ```c
-uint32_t val;
-val = pwm.SYS // read the sys register
-val = pwm.IDL // read the idl register
-val = pwm.IDH // read the idh register
-
+pwm.PSCR = PSC_32_bit
+pwm.CMP  = COMP_32_bit  // set the compare value
+pwm.CR0  = CR_32_bit    // set the channel 0 compare value
+pwm.CTRL.CLR  = 1       // clear the cnt register
+pwm.CTRL.CLR  = 0       // exit the clear operation
+pwm.CTRL.[EN, OVIE] = 1 // enable interrupt and normal mode
 ```
-write operation:
-```c
-uint32_t val = value_to_be_written;
-pwm.SYS = val // write the sys register
-pwm.IDL = val // write the idl register
-pwm.IDH = val // write the idh register
-
-```
-
 ### Resoureces
 ### References
 ### Revision History
