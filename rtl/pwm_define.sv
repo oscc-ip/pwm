@@ -40,7 +40,7 @@
  * PWM_STAT:
  * BITS:   | 31:1  | 0    |
  * FIELDS: | RES   | OVIF |
- * PERMS:  | NONE  | R    |
+ * PERMS:  | NONE  | RO   |
  * ----------------------------------
 */
 
