@@ -41,7 +41,7 @@ task automatic PWMTest::test_reset_reg();
   super.test_reset_reg();
   // verilog_format: off
   this.rd_check(`PWM_CTRL_ADDR, "CTRL REG", 32'b0 & {`PWM_CTRL_WIDTH{1'b1}}, Helper::EQUL, Helper::INFO);
-  this.rd_check(`PWM_PSCR_ADDR, "PSCR REG", 32'd2 & {`PWM_PSCR_WIDTH{1'b1}}, Helper::EQUL, Helper::INFO);
+  this.rd_check(`PWM_PSCR_ADDR, "PSCR REG", 32'b0 & {`PWM_PSCR_WIDTH{1'b1}}, Helper::EQUL, Helper::INFO);
   this.rd_check(`PWM_CMP_ADDR, "CMP REG", 32'b0 & {`PWM_CMP_WIDTH{1'b1}}, Helper::EQUL, Helper::INFO);
   this.rd_check(`PWM_CR0_ADDR, "CR0 REG", 32'b0 & {`PWM_CRX_WIDTH{1'b1}}, Helper::EQUL, Helper::INFO);
   this.rd_check(`PWM_CR1_ADDR, "CR1 REG", 32'b0 & {`PWM_CRX_WIDTH{1'b1}}, Helper::EQUL, Helper::INFO);
@@ -78,14 +78,12 @@ task automatic PWMTest::test_clk_div(input bit [31:0] run_times = 10);
   repeat (200) @(posedge this.apb4.pclk);
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
   repeat (200) @(posedge this.apb4.pclk);
-  this.write(`PWM_PSCR_ADDR, 32'd10 & {`PWM_PSCR_WIDTH{1'b1}});
+  this.write(`PWM_PSCR_ADDR, 32'd3 & {`PWM_PSCR_WIDTH{1'b1}}); // div/4
   repeat (200) @(posedge this.apb4.pclk);
-  this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
+  this.write(`PWM_PSCR_ADDR, 32'd1 & {`PWM_PSCR_WIDTH{1'b1}}); // div/2
   repeat (200) @(posedge this.apb4.pclk);
   for (int i = 0; i < run_times; i++) begin
     this.wr_val = ($random % 20) & {`PWM_PSCR_WIDTH{1'b1}};
-    if (this.wr_val < 2) this.wr_val = 2;
-    if (this.wr_val % 2) this.wr_val -= 1;
     this.wr_rd_check(`PWM_PSCR_ADDR, "PSCR REG", this.wr_val, Helper::EQUL);
     repeat (200) @(posedge this.apb4.pclk);
   end
@@ -100,8 +98,8 @@ task automatic PWMTest::test_inc_cnt(input bit [31:0] run_times = 10);
   this.write(`PWM_CR3_ADDR, 32'b0 & {`PWM_CRX_WIDTH{1'b1}});
   this.read(`PWM_STAT_ADDR);  // clear the irq
 
-  this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
-  this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
+  this.write(`PWM_CTRL_ADDR, 32'd0 & {`PWM_CTRL_WIDTH{1'b1}});
+  this.write(`PWM_PSCR_ADDR, 32'd2 & {`PWM_PSCR_WIDTH{1'b1}}); // div/3
   this.write(`PWM_CMP_ADDR, 32'hF & {`PWM_CMP_WIDTH{1'b1}});
   this.write(`PWM_CTRL_ADDR, 32'b10 & {`PWM_CTRL_WIDTH{1'b1}});
   repeat (200) @(posedge this.apb4.pclk);
@@ -118,7 +116,7 @@ task automatic PWMTest::test_pwm(input bit [31:0] run_times = 1000);
   this.read(`PWM_STAT_ADDR);  // clear the irq
 
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
-  this.write(`PWM_PSCR_ADDR, 32'd10 & {`PWM_PSCR_WIDTH{1'b1}});
+  this.write(`PWM_PSCR_ADDR, 32'd9 & {`PWM_PSCR_WIDTH{1'b1}});
   this.write(`PWM_CMP_ADDR, 32'd10 & {`PWM_CMP_WIDTH{1'b1}});  // freq: 100K
   this.write(`PWM_CTRL_ADDR, 32'b10 & {`PWM_CTRL_WIDTH{1'b1}});
   // CR: [0, CMP-1] -> [10% ~ 100%]
@@ -140,7 +138,7 @@ task automatic PWMTest::test_irq(input bit [31:0] run_times = 10);
   this.read(`PWM_STAT_ADDR);  // clear the irq
 
   this.write(`PWM_CTRL_ADDR, 32'b0 & {`PWM_CTRL_WIDTH{1'b1}});
-  this.write(`PWM_PSCR_ADDR, 32'd4 & {`PWM_PSCR_WIDTH{1'b1}});
+  this.write(`PWM_PSCR_ADDR, 32'd3 & {`PWM_PSCR_WIDTH{1'b1}});
   this.write(`PWM_CMP_ADDR, 32'hE & {`PWM_CMP_WIDTH{1'b1}});
 
   for (int i = 0; i < run_times; i++) begin
