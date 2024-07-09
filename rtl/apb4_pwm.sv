@@ -39,7 +39,7 @@ module apb4_pwm (
   logic [`PWM_STAT_WIDTH-1:0] s_pwm_stat_d, s_pwm_stat_q;
   logic s_pwm_stat_en;
   logic s_bit_ovie, s_bit_en, s_bit_clr, s_bit_ovif;
-  logic s_valid, s_done, s_tc_clk, s_normal_mode, s_ov_irq_trg;
+  logic s_valid, s_done, s_tc_trg, s_normal_mode, s_ov_irq_trg;
 
   assign s_apb4_addr     = apb4.paddr[5:2];
   assign s_apb4_wr_hdshk = apb4.psel && apb4.penable && apb4.pwrite;
@@ -65,13 +65,8 @@ module apb4_pwm (
   );
 
   assign s_pwm_pscr_en = s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR;
-  always_comb begin
-    s_pwm_pscr_d = s_pwm_pscr_q;
-    if (s_pwm_pscr_en) begin
-      s_pwm_pscr_d = apb4.pwdata[`PWM_PSCR_WIDTH-1:0] < `PWM_PSCR_MIN_VAL ? `PWM_PSCR_MIN_VAL : apb4.pwdata[`PWM_PSCR_WIDTH-1:0];
-    end
-  end
-  dfferc #(`PWM_PSCR_WIDTH, `PWM_PSCR_MIN_VAL) u_pwm_pscr_dfferc (
+  assign s_pwm_pscr_d  = apb4.pwdata[`PWM_PSCR_WIDTH-1:0];
+  dffer #(`PWM_PSCR_WIDTH) u_pwm_pscr_dffer (
       apb4.pclk,
       apb4.presetn,
       s_pwm_pscr_en,
@@ -80,17 +75,17 @@ module apb4_pwm (
   );
 
   assign s_valid = s_apb4_wr_hdshk && s_apb4_addr == `PWM_PSCR && s_done;
-  clk_int_even_div_simple #(`PWM_PSCR_WIDTH) u_clk_int_even_div_simple (
+  clk_int_div_simple #(`PWM_PSCR_WIDTH) u_clk_int_div_simple (
       .clk_i      (apb4.pclk),
       .rst_n_i    (apb4.presetn),
       .div_i      (s_pwm_pscr_q),
       .div_valid_i(s_valid),
       .div_ready_o(),
       .div_done_o (s_done),
-      .clk_o      (s_tc_clk)
+      .clk_trg_o  (s_tc_trg)
   );
 
-  assign s_pwm_cnt_en = s_bit_clr || s_normal_mode;
+  assign s_pwm_cnt_en = s_bit_clr || (s_normal_mode && s_tc_trg);
   always_comb begin
     s_pwm_cnt_d = s_pwm_cnt_q;
     if (s_bit_clr) begin
@@ -103,9 +98,8 @@ module apb4_pwm (
       end
     end
   end
-
   dffer #(`PWM_CNT_WIDTH) u_pwm_cnt_dffer (
-      s_tc_clk,
+      apb4.pclk,
       apb4.presetn,
       s_pwm_cnt_en,
       s_pwm_cnt_d,
