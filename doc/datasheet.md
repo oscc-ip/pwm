@@ -150,6 +150,8 @@ pwm.CTRL.CLR  = 1       // clear the cnt register
 pwm.CTRL.CLR  = 0       // exit the clear operation
 pwm.CTRL.[EN, OVIE] = 1 // enable interrupt and normal mode
 ```
+complete driver and test codes in [driver](../driver/) dir.
+
 ### Resoureces
 ### References
 ### Revision History
