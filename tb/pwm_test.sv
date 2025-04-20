@@ -8,11 +8,7 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-`ifndef INC_PWM_TEST_SV
-`define INC_PWM_TEST_SV
-
-`include "apb4_master.sv"
-`include "pwm_define.sv"
+`include "pwm_define.svh"
 
 class PWMTest extends APB4Master;
   string                 name;
@@ -151,4 +147,3 @@ task automatic PWMTest::test_irq(input bit [31:0] run_times = 10);
   end
 
 endtask
-`endif

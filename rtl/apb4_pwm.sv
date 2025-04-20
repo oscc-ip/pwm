@@ -8,10 +8,7 @@
 // MERCHANTABILITY OR FIT FOR A PARTICULAR PURPOSE.
 // See the Mulan PSL v2 for more details.
 
-`include "register.sv"
-`include "clk_int_div.sv"
-`include "cdc_sync.sv"
-`include "pwm_define.sv"
+`include "pwm_define.svh"
 
 module apb4_pwm (
     apb4_if.slave apb4,
