@@ -75,12 +75,4 @@
 `define PWM_PSCR_MIN_VAL  {{(`PWM_PSCR_WIDTH-2){1'b0}}, 2'd2}
 // verilog_format: on
 
-interface pwm_if ();
-  logic [3:0] pwm_o;
-  logic       irq_o;
-
-  modport dut(output pwm_o, output irq_o);
-  modport tb(input pwm_o, input irq_o);
-endinterface
-
 `endif

@@ -22,6 +22,7 @@ SRC_FILE += ../../common/rtl/interface/apb4_if.sv
 SRC_FILE += ../../common/rtl/verif/helper.sv
 SRC_FILE += ../../common/rtl/verif/test_base.sv
 SRC_FILE += ../../common/rtl/verif/apb4_master.sv
+SRC_FILE += ../rtl/pwm_if.sv
 SRC_FILE += ../rtl/apb4_pwm.sv
 SRC_FILE += ../tb/pwm_test.sv
 SRC_FILE += ../tb/test_top.sv
